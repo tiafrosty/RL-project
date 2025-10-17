@@ -11,6 +11,13 @@ DQN_sim = DQN.DQN_sim
 Q_sim = Q_learning.Q_sim
 Q_greedy_try2 = Myopic.Greedy
 
+# just a test
+############3 p = 0.6, K = 100
+# DQN
+NN_cost, NN_cap, NN_hist_all, NN_delay, NN_loss, NN_coverage, _, _, train_loss_nn  = DQN_sim(env, 0.6, 100, 51, 'Q-diff-0.png', 10000)
+
+
+
 ############3 p = 0.2, K = 50
 # DQN
 NN_cost, NN_cap, NN_hist_all, NN_delay, NN_loss, NN_coverage, _, _ = DQN_sim(env, 0.2, 50, 51, 'Q-diff-0.png', 20000)

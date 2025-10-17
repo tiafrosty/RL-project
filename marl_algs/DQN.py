@@ -71,6 +71,9 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
             tau=0.005,         # target soft-update
             eps_start=1.0, eps_end=0.05):
     
+    # track training loss
+    training_loss = []
+    
     positions = env.positions
     neighbors = env.neighbors
     A_vals = env.A_vals
@@ -329,6 +332,9 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
                     y = r + gamma * q_next
 
                 loss = F.mse_loss(q_sa, y)
+                # keep track of losses
+                training_loss.append(loss.item())
+                
                 # clear all previous gradients
                 optimizer.zero_grad()
                 # compute derivatives
@@ -366,5 +372,5 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
     # Optional plotting identical to your function can be added here
 
     # Match your return signature as closely as possible
-    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses, coverage, float(np.mean(coverage)), float(np.mean(shannon_cap_cum_all))
+    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses, coverage, float(np.mean(coverage)), float(np.mean(shannon_cap_cum_all)), training_loss
 
