@@ -132,6 +132,13 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
     rng = env.make_rng(seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # HAHAHA CPU ofc
     N_agents = env.N_agents
+    
+       # just for debugging: in addition to average capacity an cost, we will also track it separately by each user
+    cost_every_agent = [[] for _ in range(N_agents)]
+    cap_every_agent = [[] for _ in range(N_agents)]
+    ### actions also
+    action_every_agent = [[] for _ in range(N_agents)]
+
 
     tracker = DelayTracker(N_agents) #env.delay_tracker#(N_agents)
     losses = []
@@ -245,6 +252,9 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
                     a = A_vals[a_idx]
 
             actions.append(a)
+            
+            action_every_agent[i].append(a)
+            
             action_idx.append(A_vals.index(a))
             states_this_slot[i] = x_i
 
@@ -287,6 +297,11 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
 
             cumulative_cost_q_current_step += float(cost)
             shannon_cap_cum_current_step += float(math.log2(1 + SINR))
+            
+            
+            cost_every_agent[i].append(cost)
+            cap_every_agent[i].append(float(math.log2(1 + SINR)))
+
 
             # Next-state features (for x')
             x_next_i, _, _, _ = build_features(i, K, buffers[i], q_n_i, pi_i, user_id)
@@ -307,7 +322,8 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
         shannon_cap_cum_all.append(shannon_cap_cum_current_step / den)
         cumulative_cost_q_all.append(cumulative_cost_q_current_step / den)
         coverage.append(sum_transmitted / den)
-
+        # track each agent separately:
+ 
         # Learning...
         if len(replay) >= max(batch_size, start_learning_after):
             for _ in range(train_steps_per_slot):
@@ -372,5 +388,5 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
     # Optional plotting identical to your function can be added here
 
     # Match your return signature as closely as possible
-    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses, coverage, float(np.mean(coverage)), float(np.mean(shannon_cap_cum_all)), training_loss
+    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses, coverage, float(np.mean(coverage)), float(np.mean(shannon_cap_cum_all)), training_loss, cost_every_agent, cap_every_agent, action_every_agent
 
