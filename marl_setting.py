@@ -28,12 +28,14 @@ class Env:
         self.gamma = 0.9
         # SINR threshold
         self.T = 1.0
+        ## maximal allowed intensity
+        self.S_max = 20
         # sigma
         self.noise = 1  # 1e-3
         # input rate (let's try with p = q = 1 for now)
         #p_signal = 0.7
         # delay penalty 
-        self.lambda_buffer = 0.1
+        self.lambda_buffer = 0.3
         #lambda_losses = 10*lambda_buffer*K/p_signal
         # the default signal strength 
         self.mu_base = 1.0

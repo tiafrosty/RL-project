@@ -130,6 +130,81 @@ def make_plots_3_vals(figname_loss_delay, figname_cost_cap,
     # Optional: save high-res for papers/slides
     plt.savefig(figname_cost_cap, dpi=300, bbox_inches="tight")
     
+
+
+def write_data(
+        NN_hist_all,
+        act_all_agents,
+        filename,
+        NN_cost=None,
+        NN_cap=None,
+        NN_delay=None,
+        NN_loss=None,
+        NN_coverage=None,
+        nn_train_loss=None,
+        cost_nn_all_agents=None,
+        cap_nn_all_agents=None,
+        buff_all_agents = None,
+    ):
+    payload = {
+            "Q_function_all_agents": np.asarray(NN_hist_all),
+            "actions_all_agents":    np.asarray(act_all_agents),
+        }
+
+    extras = {
+            "NN_cost": NN_cost,
+            "NN_cap": NN_cap,
+            "NN_delay": NN_delay,
+            "NN_loss": NN_loss,
+            "NN_coverage": NN_coverage,
+            "nn_train_loss": nn_train_loss,
+            "cost_nn_all_agents": cost_nn_all_agents,
+            "cap_nn_all_agents": cap_nn_all_agents,
+            'buff_all_agents': buff_all_agents,
+        }
+
+        # add only provided metrics
+    for k, v in extras.items():
+        if v is not None:
+                payload[k] = np.asarray(v)
+
+    np.savez(filename, **payload)
+    
+def compute_diff_norm_one_agent(q_tables_dqn):
+    Q_norm_diffs = []
+    q_table_history = q_tables_dqn
+    for t in range(1, len(q_table_history)):
+        Q_prev = q_table_history[t - 1]
+        Q_curr = q_table_history[t]
+        diff = np.linalg.norm(Q_curr - Q_prev)  # Frobenius norm
+        Q_norm_diffs.append(diff)
+    return Q_norm_diffs
+    
+    
+def plot_norm_one_agent(q_tables_dqn, n_steps_plot):
+    # visualize Q-table evolution via norm diffs for two methods side-by-side
+    _, ax2 = plt.subplots(figsize=(7, 5.5), constrained_layout=True)
+    Q_norm_diffs = []
+    q_table_history = q_tables_dqn
+    for t in range(1, len(q_table_history)):
+        Q_prev = q_table_history[t - 1]
+        Q_curr = q_table_history[t]
+        diff = np.linalg.norm(Q_curr - Q_prev)  # Frobenius norm
+        Q_norm_diffs.append(diff)
+
+    if len(Q_norm_diffs) > 0:
+        ax2.plot(np.arange(1, len(Q_norm_diffs) + 1) * n_steps_plot,
+                Q_norm_diffs, '-', linewidth=2.0)
+
+    ax2.set_title("DQN", fontsize=16)
+    ax2.set_xlabel("Time n", fontsize=12)
+    ax2.set_ylabel(r"$||Q_n - Q_{n-1}||$", fontsize=12)
+    ax2.grid(True, which="major", alpha=0.25)
+    ax2.grid(True, which="minor", alpha=0.12)
+    ax2.xaxis.set_major_locator(MaxNLocator(nbins=7, integer=False))
+    ax2.minorticks_on()
+    ax2.tick_params(axis='both', labelsize=11)
+
     
     
 def plot_norm_new(q_tables_tab, q_tables_dqn, n_steps_plot, figname):

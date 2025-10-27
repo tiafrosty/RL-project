@@ -52,17 +52,16 @@ class ReplayBuffer:
         r = torch.tensor([b.reward for b in batch], dtype=torch.float32).unsqueeze(1)
         # next staet
         s2= torch.tensor(np.stack([b.next_state for b in batch], axis=0), dtype=torch.float32)
-        # ???
+        # 
         d = torch.tensor([b.done for b in batch], dtype=torch.float32).unsqueeze(1)
         return s, a, r, s2, d
     def __len__(self):
         return len(self.buf)
     
 
-
 #######################3 Deep Q-Netowrk
 
-def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
+def DQN_sim(env, count_after, p_signal, K, tracked_agent, name, n_steps,
             seed=12345,
             lr=1e-3, gamma=0.9, batch_size=256,
             replay_cap=50000,  # keep fairly recent window
@@ -71,6 +70,10 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
             tau=0.005,         # target soft-update
             eps_start=1.0, eps_end=0.05):
     
+    # make sure i didn't accidently fuck up the number of steps again
+    if not isinstance(n_steps, int) or n_steps <= 0:
+        raise ValueError(f"n_steps is {n_steps!r} wtf are you doing??")
+    
     # track training loss
     training_loss = []
     
@@ -78,26 +81,27 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
     neighbors = env.neighbors
     A_vals = env.A_vals
     noise = env.noise
-    #lambda_buffer = env.lambda_buffer
+    #lambda_buffer = env.lambda_buffer ## from environment
     users_and_bs = env.users_and_bs
     T = env.T
+    S_max=  env.S_max
     
     ############################333
     
         # DQN
     # dimensions for my NN:
-    # the input is a features vector; currently we have 5 features: state, action, next_state, q, and smth else
+    # the input is a features vector; currently we have 5 features: state, next_state, q, attenuation and MF-attenuation
     # the output is the vector of actions that optimizes my Q-function
     class QNet(nn.Module):
         def __init__(self, in_dim, n_actions):
             super().__init__()
             # sequential NN
             self.net = nn.Sequential(
-                # my features are actually tha buffer lengths (states)
-                # relu activation cause why not
+                # my features are 
+                # relu activation 
                 nn.Linear(in_dim, 128), nn.ReLU(),
                 nn.Linear(128, 128), nn.ReLU(),
-                # no activation in th efinal layer, just raw Q-values; 
+                # no activation in the final layer, just raw Q-values; 
                 nn.Linear(128, n_actions)
             )
         def forward(self, x):
@@ -105,7 +109,7 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
 
 
     #########3
-    ## builds up a vector of features: state, mean-field distribution of  q_n and policy pi, attenuation, mean attenuation. 
+    ##  features: state, mean-field distribution of  q_n and policy pi, attenuation, mean attenuation. 
     def build_features(i, K, buffer_i, q_n, pi, user_id):
 
         user_pos = env.user_locations[user_id]
@@ -127,10 +131,10 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
         ], dtype=np.float32)
         return x, a_x, a_bar, pi_bar
         
-    
+
     ########################################3
     rng = env.make_rng(seed)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # HAHAHA CPU ofc
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') # 
     N_agents = env.N_agents
     
        # just for debugging: in addition to average capacity an cost, we will also track it separately by each user
@@ -139,6 +143,8 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
     ### actions also
     action_every_agent = [[] for _ in range(N_agents)]
 
+    ### and buffers
+    buffer_every_agent = [[] for _ in range(N_agents)]
 
     tracker = DelayTracker(N_agents) #env.delay_tracker#(N_agents)
     losses = []
@@ -162,11 +168,11 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
 
     # Agent states
     buffers = [0 for _ in range(N_agents)]
-    # initialize actions (start policy can be random)
+    # initialize actions randomд
     actions_prev = list(rng.choice(A_vals, size=N_agents))
 
-    # track one agent’s Q snapshots (approximate)
-    q_table_history = [[] for _ in range(tracked_agent)]  # keep API compatibility
+    # track one agents Q snapshots 
+    q_table_history = [[] for _ in range(tracked_agent)]  
 
     global_step = 0
 
@@ -176,17 +182,17 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
         shannon_cap_cum_current_step = 0.0
         cumulative_cost_q_current_step = 0.0
 
-        # ε schedule
+        # epsiloon schedule
         frac = n / max(1, n_steps)
         epsilon = max(eps_end, eps_start * (1 - frac))
 
-        # Draw arrivals
+        # generate arrivals
         signals = rng.binomial(1, p_signal, N_agents)
 
-        # Active users
+        # active users
         active_users = (signals == 1) | (np.array(buffers) > 0)
 
-        # Update buffers with arrivals (cap at K); track losses
+        # Update buffers with arrivals BUT only those that have a non-empty buffer. Otherwise loss
         inds_buffers_less_than_K = [jj for jj in range(len(buffers)) if buffers[jj] < K]
         losses_current_slot = 0
         for j in range(N_agents):
@@ -201,10 +207,10 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
         # Freeze a snapshot of buffers to compute MF consistently in this slot
         buffers_freeze = buffers.copy()
 
-        # Choose actions with ε-greedy from NN Q(x)
+        # Choose actions from NN Q(x)
         actions = []
         action_idx = []
-        # We’ll also pre-sample which user each BS serves this slot
+        # randommly chose a user to be served
         chosen_users = []
 
         # Precompute per-agent frozen MF (q_n, pi) once for the slot
@@ -253,7 +259,7 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
 
             actions.append(a)
             
-            action_every_agent[i].append(a)
+            #action_every_agent[i].append(a)
             
             action_idx.append(A_vals.index(a))
             states_this_slot[i] = x_i
@@ -267,16 +273,23 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
         for i in range(N_agents):
             if len(users_and_bs[i]) == 0:
                 continue
+            
+            # tg passs:
+            # 123wqeswGG3454hfg!!64rehg$$hh
 
             user_id = chosen_users[i]
-            # Recompute MF (the same frozen snapshot!); do NOT let buffers update leak
+            # Recompute MF (the same frozen snapshot!) do NOT let buffers update leak
             q_n_i, pi_i = env.estimate_mean_fields(buffers_freeze, mf_actions, neighbors, i, K_buffer=K)
 
             user_pos = env.user_locations[user_id]
             a_x = env.attenuation(positions[i], user_pos)
             if len(neighbors[i]):
                 a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i]) / len(neighbors[i])
-                interference = a_bar * q_n_i * sum(pi_i[mu] / mu for mu in A_vals)
+                # with S ~ exp(mu):
+                interference = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[mu] / mu for mu in A_vals)
+                # with S = min (Y ~ exp(mu), S_max):
+                #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
+                #interference = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[mu]*E_S(mu) for mu in A_vals)
             else:
                 a_bar = 0.0
                 interference = 0.0
@@ -301,9 +314,9 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
             
             cost_every_agent[i].append(cost)
             cap_every_agent[i].append(float(math.log2(1 + SINR)))
+            buffer_every_agent[i].append(buffers[i])
 
-
-            # Next-state features (for x')
+            # Next state features (for x')
             x_next_i, _, _, _ = build_features(i, K, buffers[i], q_n_i, pi_i, user_id)
             next_states_this_slot[i] = x_next_i
 
@@ -311,18 +324,18 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
             s = states_this_slot[i]
             a_idx = action_idx[i]
             s2 = x_next_i
-            done = 0.0  # continuing task
+            done = 0.0  # continuing task // actually don't need it
             if s is not None:
                 replay.push(s, a_idx, reward, s2, done)
 
             global_step += 1
 
-        # Metrics & bookkeeping
+        # Metrics
         den = max(1, int(active_users.sum()))
         shannon_cap_cum_all.append(shannon_cap_cum_current_step / den)
         cumulative_cost_q_all.append(cumulative_cost_q_current_step / den)
         coverage.append(sum_transmitted / den)
-        # track each agent separately:
+        # track each agent separately
  
         # Learning...
         if len(replay) >= max(batch_size, start_learning_after):
@@ -367,7 +380,7 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
         # Stage commit for MF actions next slot (we used actions_prev to freeze MF here)
         actions_prev = actions
 
-        # (Optional) snapshot a few agents' Q-vectors at canonical states
+        #  snapshot a few agents' Q-vectors
         if n % env.n_steps_plot == 0:
             for i in range(min(tracked_agent, N_agents)):
                 # record network output at current state (approx)
@@ -375,18 +388,16 @@ def DQN_sim(env, p_signal, K, tracked_agent, name, n_steps,
                     with torch.no_grad():
                         qvals = online(torch.tensor(states_this_slot[i], dtype=torch.float32, device=device).unsqueeze(0)).cpu().numpy().squeeze()
                     q_table_history[i].append(qvals.copy())
+                    ######### update other metrics:
+                    action_every_agent[i].append(actions[i])
+                    #cost_every_agent[i].append
 
-        # End slot
-        tracker.end_slot()
+        tracker.end_slot() # for the delay tracker, at this point we compute the number of required transmission attempts
 
-    # Summary prints
     print('NN-Q (DoubleDQN) avg cost:', float(np.mean(cumulative_cost_q_all)))
     print('NN-Q buffers:', float(np.sum(buffers) / n_steps / N_agents))
 
     delay = tracker.avg_delay_per_slot
 
-    # Optional plotting identical to your function can be added here
-
-    # Match your return signature as closely as possible
-    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses, coverage, float(np.mean(coverage)), float(np.mean(shannon_cap_cum_all)), training_loss, cost_every_agent, cap_every_agent, action_every_agent
+    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses, coverage, float(np.mean(coverage[count_after:])), float(np.mean(shannon_cap_cum_all[count_after:])), training_loss, cost_every_agent, cap_every_agent, action_every_agent, buffer_every_agent
 

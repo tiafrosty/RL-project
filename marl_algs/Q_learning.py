@@ -23,12 +23,17 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
     users_and_bs = env.users_and_bs
     gamma = env.gamma
     
+    S_max=  env.S_max
+    
     tracker = DelayTracker(N_agents) #env.delay_tracker
     # Agent cumulative losses (Q-learning)
     losses = []
     #delay = np.array([0 for _ in range(N_agents)])
     
     Q_tables = [np.zeros((K + 1, M)) for _ in range(N_agents)]
+    
+        ### and buffers
+    buffer_every_agent = [[] for _ in range(N_agents)]
     
     # Agent states
     buffers = [0 for _ in range(N_agents)]
@@ -42,6 +47,8 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
     shannon_cap_cum_all = []
     # average cost
     cumulative_cost_q_all = []
+    # keep all chosen actions
+    action_every_agent = [[] for _ in range(N_agents)]
     
     ##################################
     ###### MAIN LEARNING LOOP ########
@@ -153,7 +160,11 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             user_pos = env.user_locations[user_id]
             a_x = env.attenuation(positions[i], user_pos)
             a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
-            interference =  a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
+            
+            interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
+            #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
+            #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
+            
             SINR = strengths[i] * a_x / (interference + noise)
             success = 1 if SINR > T else 0
             
@@ -165,6 +176,9 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             # buffers were already incremented by arrivals; now remove served packet if success
             
             buffers[i] = min(K, buffers[i] - success)
+            
+                ### and buffers
+            buffer_every_agent[i].append(buffers[i])
             # remover buffer FOR NOW
             cost = env.compute_cost(SINR, buffers[i])  #- np.log2(1 + SINR) + lambda_buffer * buffers[i] #+ #lambda_losses*losses_q[i]
             cumulative_cost_q_current_step += cost
@@ -199,6 +213,8 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
         if n % env.n_steps_plot == 0:
             for i in range(tracked_agent):
                 q_table_history[i].append(Q_tables[i].copy())
+                
+                action_every_agent[i].append(actions[i])
             
     print('Q-learning cost:',  np.mean(cumulative_cost_q_all))
     print('Q-learning buffers', np.sum(buffers)/n_steps/N_agents)
@@ -206,7 +222,7 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
     delay = tracker.avg_delay_per_slot
     
         
-    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses,  coverage, np.mean(coverage), np.mean(shannon_cap_cum_all)
+    return cumulative_cost_q_all, shannon_cap_cum_all, q_table_history, delay, losses,  coverage, np.mean(coverage), np.mean(shannon_cap_cum_all), action_every_agent, buffer_every_agent
     #return cumulative_cost_q_all
 
 

@@ -5,7 +5,7 @@ import random
 
 from .del_tracker import DelayTracker
 
-def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
+def Greedy(best_acts, env, p_signal, K, tracked_agent, name, n_steps):
     
     losses = []
     
@@ -19,8 +19,6 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     A_vals = env.A_vals
     noise = env.noise
     users_and_bs = env.users_and_bs
-    
-    S_max=  env.S_max
 
     
     # Agent states
@@ -32,11 +30,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     shannon_cap_cum_all = []
     # average cost
     cumulative_cost_q_all = []
-    
     buffer_every_agent = [[] for _ in range(N_agents)]
-    
-    action_every_agent =  [[] for _ in range(N_agents)]
-    
     
     def instant_cost_for_action(i, mu, s_i, q_n_i, pi_i, user_pos):
         # path losses towards the chosen user and average neighbor attenuation
@@ -45,7 +39,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
 
         # interference term built from neighbors' policy distribution (from prev actions)
         # same expression as in your simulation loop
-        interf = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[m] / m for m in A_vals) if len(neighbors[i]) else 0.0
+        interf = a_bar * q_n_i * sum(pi_i[m] / m for m in A_vals) if len(neighbors[i]) else 0.0
 
         np.random.seed(n*i)
         scale =  np.random.exponential(1/mu)
@@ -61,6 +55,11 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     ##################################
     coverage = []
     
+    ########3 just for debugging, remove later:
+    ####3 thes are the best action values returned by DQN. I wanna see if i really can achieve the performance it did with them     
+    #best_acts = best_acts
+    
+    
     for n in tqdm(range(1, n_steps + 1)):
         
         # compute the number of successfully transmitted singals to find coverage
@@ -71,15 +70,8 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         shannon_cap_cum_current_step = 0
         cumulative_cost_q_current_step = 0
 
-        actions = []
-
-        for k in range(N_agents):
-            # current state
-            # epsilon-greedy over Q (for exploration)
-            random.seed(k*n)
-            rand_action = np.random.choice(A_vals) 
-            actions.append(rand_action)
-                
+        actions = best_acts #[]
+        
         np.random.seed(n)
         signals = np.random.binomial(1, p_signal, N_agents)
 
@@ -125,11 +117,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             user_pos = env.user_locations[user_id]
             a_x = env.attenuation(positions[i], user_pos)
             a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
-            
-            interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
-            #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
-            #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
-            
+            interference =  a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
             SINR = strengths[i] * a_x / (interference + noise)
             success = 1 if SINR > T else 0
             
@@ -138,6 +126,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             
             # buffers were already incremented by arrivals; now remove served packet if success
             buffers[i] = min(K, buffers[i] - success)
+            
             
             buffer_every_agent[i].append(buffers[i])
             
@@ -148,21 +137,19 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             else:              
                 best_cost = float('inf')
                 best_cap = math.log2(1 + SINR)
-                for mu in A_vals:
-                    c_mu, cur_cap, sinr_mu = instant_cost_for_action(i, mu, buffers[i], q_n, pi, user_pos)
-                    if c_mu <= best_cost:
-                        best_cost = c_mu
-                        best_mu = mu
-                        best_cap = cur_cap
-                        best_success = 1 if sinr_mu > T else 0
+                # don't need this loop
+                mu_best =  best_acts[0]
+                c_mu, cur_cap, sinr_mu = instant_cost_for_action(i, mu_best, buffers[i], q_n, pi, user_pos)
+                best_cost = c_mu
+                best_mu = mu_best
+                best_cap = cur_cap
+                best_success = 1 if sinr_mu > T else 0
                 
-                actions[i] = best_mu
+                #actions[i] = best_mu
             sum_transmitted += best_success
             
             cost = best_cost #- np.log2(1 + SINR) + lambda_buffer * buffers[i] #+ #lambda_losses*losses_q[i]
             cumulative_cost_q_current_step += cost
-            
-            action_every_agent[i].append(actions[i])
 
             shannon_cap_cum_current_step += best_cap #np.log2(1 + SINR)
             
@@ -180,6 +167,6 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     print('Greedy cost:',  np.mean(cumulative_cost_q_all))
     print('Greedy buffers', np.sum(buffers)/n_steps/N_agents)
 
-    return cumulative_cost_q_all, shannon_cap_cum_all, delay, losses, coverage, np.mean(coverage), np.mean(shannon_cap_cum_all), action_every_agent, buffer_every_agent
+    return cumulative_cost_q_all, shannon_cap_cum_all, delay, losses, coverage, np.mean(coverage), np.mean(shannon_cap_cum_all), buffer_every_agent
     #return cumulative_cost_q_all
     
