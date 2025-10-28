@@ -1,9 +1,8 @@
 from marl_setting import Env
 from marl_algs import DQN, Q_learning, Myopic, Myopic_test
 import matplotlib.pyplot as plt
-from plotting import make_plots_3_vals, plot_norm_new, plot_norm_one_agent, write_data
+from plotting import make_plots_3_vals, plot_norm_new, plot_norm_one_agent, write_data, plot_all_p
 import numpy as np
-
 
 env = Env()
 
@@ -14,8 +13,6 @@ Q_greedy_try2 = Myopic.Greedy
 # this is just a simulation with pre-defined vectors of mu. I want to see how good can agents actually perform with these actions
 sim_test = Myopic_test.Greedy
 
-
-#avg_across_agents_sim = np.array(all_buffs).mean(axis=0)
 
 # k = 30, function of p
 def compute_for_all_p(K_buff, n, count_after):
@@ -40,19 +37,19 @@ def compute_for_all_p(K_buff, n, count_after):
         # Q-learning
         Q_cost, Q_cap, q_hist_all, Q_delay, Q_loss, Q_coverage, Q_cov_mean, Q_cap_mean, q_actions, q_buffs = Q_sim(env, cur_p, K_buff, 212, 'Q-diff-0.png', 10000)
         # greedy
-        greedy_cost, greedy, greedy_delay, greedy_loss, greedy_coverage, greedy_cov_mean, greedy_cap_mean, greedy_actions, greedy_buffs = Q_greedy_try2(env, cur_p, K_buff, 212, 'greedy-diff-0.png', 6000)
+        greedy_cost, greedy, greedy_delay, greedy_loss, greedy_coverage, greedy_cov_mean, greedy_cap_mean, greedy_actions, greedy_buffs = Q_greedy_try2(env, cur_p, K_buff, 212, 'greedy-diff-0.png', 5000)
         # DQN
         NN_cost, NN_cap, NN_hist_all, NN_delay, NN_loss, NN_coverage, NN_cov_mean, NN_cap_mean, nn_train_loss, cost_nn_all_agents, cap_nn_all_agents, act_all_agents, buff_all_agents  = DQN_sim(env, count_after, cur_p, K_buff, 212, 'Q-diff-0.png', n)
 
         cov_p_Q.append(Q_cov_mean)
         cap_p_Q.append(Q_cap_mean)
-        loss_p_Q.append(np.array(Q_loss)[count_after:].mean())
-        buff_p_Q.append(np.array(q_buffs).mean(axis=0)[count_after:].mean())
+        loss_p_Q.append(np.array(Q_loss)[5000:].mean())
+        buff_p_Q.append(np.array(q_buffs).mean(axis=0)[5000:].mean())
         
         cov_p_greedy.append(greedy_cov_mean)
         cap_p_greedy.append(greedy_cap_mean)
-        loss_p_greedy.append(np.array(greedy_loss)[count_after:].mean())
-        buff_p_greedy.append(np.array(greedy_buffs).mean(axis=0)[count_after:].mean())
+        loss_p_greedy.append(np.array(greedy_loss)[3000:].mean())
+        buff_p_greedy.append(np.array(greedy_buffs).mean(axis=0)[3000:].mean())
         
         cov_p_NN.append(NN_cov_mean)
         cap_p_NN.append(NN_cap_mean)
@@ -60,42 +57,79 @@ def compute_for_all_p(K_buff, n, count_after):
         buff_p_NN.append(np.array(buff_all_agents).mean(axis=0)[count_after:].mean())
         
     return cov_p_Q, cap_p_Q, loss_p_Q, buff_p_Q, cov_p_greedy, cap_p_greedy, loss_p_greedy, buff_p_greedy, cov_p_NN, cap_p_NN, loss_p_NN, buff_p_NN
+    #return cov_p_greedy, cap_p_greedy, loss_p_greedy, buff_p_greedy
     
 
+#cov_p_greedy, cap_p_greedy, loss_p_greedy, buff_p_greedy = compute_for_all_p(20, 20000, 10000)
 
-#cov_p_Q, cap_p_Q, loss_p_Q, buff_p_Q, cov_p_greedy, cap_p_greedy, loss_p_greedy, buff_p_greedy, cov_p_NN, cap_p_NN, loss_p_NN, buff_p_NN = compute_for_all_p(10, 16, 10)
 
-aa = 1
+#### K = 20, all p
+# cov_p_Q, cap_p_Q, loss_p_Q, buff_p_Q, cov_p_greedy, cap_p_greedy, loss_p_greedy, buff_p_greedy, cov_p_NN, cap_p_NN, loss_p_NN, buff_p_NN = compute_for_all_p(20, 40000, 30000)
+# np.savez("for_all_p_K20.npz", cov_p_Q=cov_p_Q, cap_p_Q=cap_p_Q, loss_p_Q=loss_p_Q, buff_p_Q=buff_p_Q, 
+#          cov_p_greedy=cov_p_greedy, cap_p_greedy=cap_p_greedy, loss_p_greedy=loss_p_greedy, buff_p_greedy=buff_p_greedy,
+#          cov_p_NN=cov_p_NN, cap_p_NN=cap_p_NN, loss_p_NN =loss_p_NN, buff_p_NN=buff_p_NN)
 
-#### K = 10, all p
-cov_p_Q, cap_p_Q, loss_p_Q, buff_p_Q, cov_p_greedy, cap_p_greedy, loss_p_greedy, buff_p_greedy, cov_p_NN, cap_p_NN, loss_p_NN, buff_p_NN = compute_for_all_p(20, 40000, 30000)
-np.savez("for_all_p_K20.npz", cov_p_Q=cov_p_Q, cap_p_Q=cap_p_Q, loss_p_Q=loss_p_Q, buff_p_Q=buff_p_Q, 
-         cov_p_greedy=cov_p_greedy, cap_p_greedy=cap_p_greedy, loss_p_greedy=loss_p_greedy, buff_p_greedy=buff_p_greedy,
-         cov_p_NN=cov_p_NN, cap_p_NN=cap_p_NN, loss_p_NN =loss_p_NN, buff_p_NN=buff_p_NN)
+# data_all_p = np.load("for_all_p_K20.npz", allow_pickle=False)
+# cov_p_Q_K20 =data_all_p['cov_p_Q']
+# cap_p_Q_K20=data_all_p['cap_p_Q'] 
+# loss_p_Q_K20 = data_all_p['loss_p_Q']
+# buff_p_Q_K20 = data_all_p['buff_p_Q']
+
+# cov_p_greedy_K20=data_all_p['cov_p_greedy']
+# cap_p_greedy_K20=data_all_p['cap_p_greedy']
+# loss_p_greedy_K20 = data_all_p['loss_p_greedy']
+# buff_p_greedy_K20 = data_all_p['buff_p_greedy']
+
+# cov_p_NN_K20=data_all_p['cov_p_NN']
+# cap_p_NN_K20=data_all_p['cap_p_NN']
+# loss_p_NN_K20 = data_all_p['loss_p_NN']
+# buff_p_NN_K20 = data_all_p['buff_p_NN']
+
+
+# plot_all_p('cov-cap-K20', 'loss-buff-K20',
+#                #####3 coverage and capacity
+#                cov_p_Q_K20, cov_p_greedy_K20, cov_p_NN_K20,
+#                cap_p_Q_K20, cap_p_greedy_K20, cap_p_NN_K20,
+#                ######### loss and buffer
+#                loss_p_Q_K20, loss_p_greedy_K20, loss_p_NN_K20,
+#                buff_p_Q_K20, buff_p_greedy_K20, buff_p_NN_K20
+#                )
+
+
 ### K = 100, all p
 cov_p_Q, cap_p_Q, loss_p_Q, buff_p_Q, cov_p_greedy, cap_p_greedy, loss_p_greedy, buff_p_greedy, cov_p_NN, cap_p_NN, loss_p_NN, buff_p_NN = compute_for_all_p(100, 40000, 30000)
 np.savez("for_all_p_K100.npz", cov_p_Q=cov_p_Q, cap_p_Q=cap_p_Q, loss_p_Q=loss_p_Q, buff_p_Q=buff_p_Q, 
          cov_p_greedy=cov_p_greedy, cap_p_greedy=cap_p_greedy, loss_p_greedy=loss_p_greedy, buff_p_greedy=buff_p_greedy,
+
          cov_p_NN=cov_p_NN, cap_p_NN=cap_p_NN, loss_p_NN =loss_p_NN, buff_p_NN=buff_p_NN)
 
-data_all_p = np.load("for_all_p_K20.npz", allow_pickle=False)
-cov_p_Q_K20 =data_all_p['cov_p_Q']
-cap_p_Q_K20=data_all_p['cap_p_Q'] 
-loss_p_Q_K20 = data_all_p['loss_p_Q']
-buff_p_Q_K20 = data_all_p['buff_p_Q']
+data_all_p = np.load("for_all_p_K100.npz", allow_pickle=False)
+cov_p_Q_K100 =data_all_p['cov_p_Q']
+cap_p_Q_K100=data_all_p['cap_p_Q'] 
+loss_p_Q_K100 = data_all_p['loss_p_Q']
+buff_p_Q_K100 = data_all_p['buff_p_Q']
 
-cov_p_greedy_K20=data_all_p['cov_p_greedy']
-cap_p_greedy_K20=data_all_p['cap_p_greedy']
-loss_p_greedy_K20 = data_all_p['loss_p_greedy']
-buff_p_greedy_K20 = data_all_p['buff_p_greedy']
+cov_p_greedy_K100=data_all_p['cov_p_greedy']
+cap_p_greedy_K100=data_all_p['cap_p_greedy']
+loss_p_greedy_K100 = data_all_p['loss_p_greedy']
+buff_p_greedy_K100 = data_all_p['buff_p_greedy']
+
+cov_p_NN_K100=data_all_p['cov_p_NN']
+cap_p_NN_K100=data_all_p['cap_p_NN']
+loss_p_NN_K100 = data_all_p['loss_p_NN']
+buff_p_NN_K100 = data_all_p['buff_p_NN']
 
 
-cov_p_NN_K20=data_all_p['cov_p_NN']
-cap_p_NN_K20=data_all_p['cap_p_NN']
-loss_p_NN_K20 = data_all_p['loss_p_NN']
-buff_p_NN_K20 = data_all_p['buff_p_NN']
+plot_all_p('cov-cap-K100', 'loss-buff-K100',
+           #####3 coverage and capacity
+           cov_p_Q_K100, cov_p_greedy_K100, cov_p_NN_K100,
+           cap_p_Q_K100, cap_p_greedy_K100, cap_p_NN_K100,
+           ######### loss and buffer
+           loss_p_Q_K100, loss_p_greedy_K100, loss_p_NN_K100,
+           buff_p_Q_K100, buff_p_greedy_K100, buff_p_NN_K100
+)
 
-
+aa = 1
 
 # large buffer, heavy traffic
 ### I changed buffer penalty to 0.3 maybe it will react better

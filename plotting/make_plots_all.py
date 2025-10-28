@@ -8,6 +8,112 @@ from scipy.spatial import Voronoi, Delaunay
 
 from scipy.integrate import quad
 
+from matplotlib.ticker import FixedLocator, FormatStrFormatter
+
+
+
+def plot_all_p(figname_cov_cap, figname_loss_buff,
+               #####3 coverage and capacity
+               Q_cov, greedy_cov, NN_cov,
+               Q_cap, greedy_cap, NN_cap,
+               ######### loss and buffer
+               Q_loss, greedy_loss, NN_loss,
+               Q_buff, greedy_buff, NN_buff
+               ):
+    
+    ### p
+    p = np.linspace(0.1, 0.9, 9)
+    # myopic, Q-learn, QDN
+    cols = {'myopic':'blue', 'q-learn':'black', 'NN':'purple'}
+  
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(14, 5.5), sharex=True, constrained_layout=True
+    )
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(14, 5.5), sharex=True, constrained_layout=True
+    )
+
+
+    # -------- subplot 1: loss rate / buffer --------
+    for ax, y_raw, base_raw, nn_raw, title, ylab in [
+        (ax1, Q_loss,  greedy_loss,  NN_loss, "Loss probability",        "Loss rate"),
+        (ax2, Q_buff,  greedy_buff,  NN_buff, "Average buffer length",   "EB(p)"),
+    ]:
+        ax.plot(p, y_raw,    linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols['q-learn'], label="Q-learning")
+        ax.plot(p, base_raw, linewidth=2.5, alpha=0.8, linestyle='-', marker='o', color=cols["myopic"],   label="Myopic")
+        ax.plot(p, nn_raw,   linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols['NN'],       label="DQN")
+
+        ax.set_xlim(0.05, 0.95)
+        ax.xaxis.set_major_locator(FixedLocator(p))
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        ax.minorticks_off()
+
+        ax.set_title(title, fontsize=16)
+        ax.set_xlabel("p", fontsize=12)
+        ax.set_ylabel(ylab, fontsize=12)
+        ax.grid(True, which="major", alpha=0.25)
+        ax.grid(True, which="minor", alpha=0.12)
+        #ax.xaxis.set_major_locator(MaxNLocator(nbins=7, integer=False))
+        ax.minorticks_on()
+
+    # y-lims tight to data
+    ax1.set_ylim(0, max(np.max(Q_loss), np.max(greedy_loss), np.max(NN_loss)) * 1.05)
+    ax2.set_ylim(0, max(np.max(Q_buff), np.max(greedy_buff), np.max(NN_buff)) * 1.05)
+
+    for ax in (ax1, ax2):
+        ax.legend(loc='best', fontsize=13)
+        ax.tick_params(axis='both', labelsize=11)
+
+    # Optional: save high-res for papers/slides
+    plt.savefig(figname_loss_buff, dpi=300, bbox_inches="tight")
+    
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(14, 5.5), sharex=True, constrained_layout=True
+    )
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(14, 5.5), sharex=True, constrained_layout=True
+    )
+
+    # -------- subplot 2: capacity / coverage --------
+    for ax, y_raw, base_raw, nn_raw, title, ylab in [
+        (ax1, Q_cap,  greedy_cap,  NN_cap, "Average Shannon capacity", "C(p)"),
+        (ax2, Q_cov,  greedy_cov,  NN_cov, "Coverage probability",     "P_cov(p)"),
+    ]:
+        ax.plot(p, y_raw,    linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols["q-learn"], label="Q-learning")
+        ax.plot(p, base_raw, linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols["myopic"],   label="Myopic")
+        ax.plot(p, nn_raw,   linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols["NN"],       label="DQN")
+
+        ax.set_xlim(0.05, 0.95)
+        ax.xaxis.set_major_locator(FixedLocator(p))
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        ax.minorticks_off()
+        
+        ax.set_title(title, fontsize=16)
+        ax.set_xlabel("p", fontsize=12)
+        ax.set_ylabel(ylab, fontsize=12)
+        ax.grid(True, which="major", alpha=0.25)
+        ax.grid(True, which="minor", alpha=0.12)
+        #ax.xaxis.set_major_locator(MaxNLocator(nbins=7, integer=False))
+        ax.minorticks_on()
+
+    # y-lims tight to data
+    ymin = min(np.min(Q_cap), np.min(greedy_cap), np.min(NN_cap)) - 1
+    ymax = max(np.max(Q_cap), np.max(greedy_cap), np.max(NN_cap)) + 1
+    ax1.set_ylim(ymin, ymax)
+    ax2.set_ylim(0, max(np.max(Q_cov), np.max(greedy_cov), np.max(NN_cov)) * 1.05)
+
+    # Legends
+    for ax in (ax1, ax2):
+        ax.legend(loc='best', fontsize=13)
+        ax.tick_params(axis='both', labelsize=11)
+
+    # Optional: save high-res for papers/slides
+    plt.savefig(figname_cov_cap, dpi=300, bbox_inches="tight")
+
+
+
+    
+
 
 
 def smooth(x, w=25):
@@ -45,11 +151,11 @@ def make_plots_3_vals(figname_loss_delay, figname_cost_cap,
         "Per-slot average delay", "Average delay"),
     ]:
         # Raw 
-        ax.plot(y_raw, linewidth=1.2, alpha=0.35, color = cols['q-learn'])
+        ax.plot(y_raw, linewidth=1.2, color = cols['q-learn'])
         ax.plot(greedy_loss if ax is ax1 else greedy_delay,
-                linewidth=1.2, alpha=0.35, color = cols["myopic"])
+                linewidth=1.2, color = cols["myopic"])
         ax.plot(NN_loss if ax is ax1 else NN_delay,
-                linewidth=1.2, alpha=0.35, color = cols['NN'])
+                linewidth=1.2,  color = cols['NN'])
         # Smoothed (bold)
         ax.plot(y_smooth, linewidth=2.2, label="Q-learning", color = cols["q-learn"])
         base_sm = smooth(greedy_loss, 21) if ax is ax1 else smooth(greedy_delay, 21)
