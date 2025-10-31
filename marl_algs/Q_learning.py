@@ -55,6 +55,9 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
     ##################################
     coverage = []
 
+
+    mean_actions =[0 for _ in range(N_agents)]
+
     for n in tqdm(range(1, n_steps + 1)):
         
         # at each slot, keep number of successfully tramsmitted signals 
@@ -85,13 +88,19 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
         for k in range(N_agents):
             # current state
             s = buffers[k]
+            m_idx = mean_actions[k]
             random.seed(k*n)
             rand_action = np.random.choice(A_vals) 
             # epsilon-greedy over Q (for exploration)
             if random.random() < epsilon:
                 actions.append(rand_action)
             else:
-                 actions.append(A_vals[np.argmin(Q_tables[k][s])])
+                 # 2d was like this
+                 #actions.append(A_vals[np.argmin(Q_tables[k][s])])
+                 # 3d should be like this?
+                a_idx = np.argmin(Q_tables[k][s][:, m_idx])  # fix current mfg
+                actions.append(A_vals[a_idx])
+                 
                 #mf = mf_bin(q_n)   # q_n already computed per agent
                 #a_idx = np.argmin(Q_tables[k][s, :, mf])
                 #actions.append(A_vals[a_idx])
@@ -187,6 +196,8 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             # no wait... probably like this:
             pi_bar = sum(pi[mu]/mu for mu in A_vals)
             a_bar_discr = int(A_vals[np.argmin(abs(pi_bar - np.array(A_vals)))])
+            
+            mean_actions[i] = a_bar_discr
             
             # 3-d Q-table
             
