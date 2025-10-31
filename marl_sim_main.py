@@ -1,11 +1,17 @@
 from marl_setting import Env
 from marl_algs import DQN, Q_learning, Myopic, Myopic_test
 import matplotlib.pyplot as plt
-from plotting import make_plots_3_vals, plot_norm_new, plot_norm_one_agent, write_data, plot_all_p
+from plotting import make_plots_3_vals, plot_norm_new, plot_norm_one_agent, write_data, plot_all_p, plot_bounded_voronoi, plot_voronoi_cells
 import numpy as np
+from scipy.spatial import Voronoi, Delaunay
 
 env = Env()
 
+####3 plot Voronoi
+#plot_bounded_voronoi(Voronoi(env.positions), env.positions,  env.user_locations, 'delaunay.png')
+#plot_voronoi_cells(env.positions, env.L, 'bs-users-voronoi.png')
+
+aa = 1
 
 DQN_sim = DQN.DQN_sim
 Q_sim = Q_learning.Q_sim
@@ -13,6 +19,9 @@ Q_greedy_try2 = Myopic.Greedy
 # this is just a simulation with pre-defined vectors of mu. I want to see how good can agents actually perform with these actions
 sim_test = Myopic_test.Greedy
 
+
+Q_cost, Q_cap, q_hist_all, Q_delay, Q_loss, Q_coverage, Q_cov_mean, Q_cap_mean, q_actions, q_buffs = Q_sim(env, 0.2, 50, 212, 'Q-diff-0.png', 10000)
+       
 
 # k = 30, function of p
 def compute_for_all_p(K_buff, n, count_after):

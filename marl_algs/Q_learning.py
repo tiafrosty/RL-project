@@ -30,7 +30,7 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
     losses = []
     #delay = np.array([0 for _ in range(N_agents)])
     
-    Q_tables = [np.zeros((K + 1, M)) for _ in range(N_agents)]
+    Q_tables = [np.zeros((K + 1, M, M)) for _ in range(N_agents)]
     
         ### and buffers
     buffer_every_agent = [[] for _ in range(N_agents)]
@@ -68,9 +68,6 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
         shannon_cap_cum_current_step = 0
         cumulative_cost_q_current_step = 0
 
-        
-        
-        
         # was like that
         #epsilon = max(0.05, 1.0 - n / n_steps)  #1 / (1 + 0.001 * n)
         #but i wil do the same as DQN
@@ -184,10 +181,26 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             cumulative_cost_q_current_step += cost
             Q = Q_tables[i]
             
-            # now try to get back to the 2-d Q-table
-            Q[prev_state][A_vals.index(actions[i])] += alpha * (
-            cost + gamma * np.min(Q[buffers[i]]) - Q[prev_state][A_vals.index(actions[i])]
-            )
+            # check out my genious discretization idea 
+            # i compute the mean actions of all agents like this
+            #a_bar_discr = A_vals[np.argmin(abs(np.mean(actions) - np.array(A_vals)))]
+            # no wait... probably like this:
+            pi_bar = sum(pi[mu]/mu for mu in A_vals)
+            a_bar_discr = int(A_vals[np.argmin(abs(pi_bar - np.array(A_vals)))])
+            
+            # 3-d Q-table
+            
+            a_idx = A_vals.index(actions[i])
+            s_prev = prev_state
+            s_next = buffers[i]
+
+            Q[s_prev, a_idx, a_bar_discr] += alpha * (
+                cost + gamma * np.min(Q[s_next]) - Q[s_prev, a_idx, a_bar_discr]
+)
+            # was like this
+            #Q[prev_state][A_vals.index(actions[i])][a_bar_discr] += alpha * (
+            #cost + gamma * np.min(Q[buffers[i]]) - Q[prev_state][A_vals.index(actions[i])]
+            #)
             
             # was like this with bins:
             # mf_curr = mf_bin(q_n)        # or recompute with new state if q_n changes

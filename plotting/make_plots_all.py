@@ -6,6 +6,7 @@ from matplotlib.ticker import MaxNLocator
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, Delaunay
 
+
 from scipy.integrate import quad
 
 from matplotlib.ticker import FixedLocator, FormatStrFormatter
@@ -450,25 +451,29 @@ def run_q_and_greedy(filename, file_mode, n,
 
 
 ## Plotting Voronoi diagram (optional)
-#vor = Voronoi(positions)
-#fig = plt.figure(figsize=(6, 6))
-## plot Delaunay connections
-#plt.triplot(positions[:, 0], positions[:, 1], delaunay.simplices, color='gray')
-## plot BS locations
-#plt.plot(positions[:, 0], positions[:, 1], 'o', color='blue', markersize =  10)
-## plot users locations
-#plt.plot(user_locations[:, 0], user_locations[:, 1], 'o', color='red')
-#plt.title("Voronoi-based BSs with Delaunay Neighbors", fontsize = 20)
-#plt.xlim(0, L)
-#plt.ylim(0, L)
-#plt.gca().set_aspect('equal')
-#plt.grid(True)
-#plt.show()
+def plot_voronoi_cells(positions, L, figname): 
+    vor = Voronoi(positions)
+    delaunay = Delaunay(positions)
+    fig = plt.figure(figsize=(8, 8))
+    # plot Delaunay connections
+    plt.triplot(positions[:, 0], positions[:, 1], delaunay.simplices, color='gray')
+    # plot BS locations
+    plt.plot(positions[:, 0], positions[:, 1], 'o', color='blue', markersize =  10)
+    plt.subplots_adjust(left=0.01, right=0.999, top=0.95, bottom=0.05)
+    # plot users locations
+    #plt.plot(user_locations[:, 0], user_locations[:, 1], 'o', color='red')
+    plt.title("BSs with Delaunay Neighbors", fontsize = 20)
+    plt.xlim(0, L)
+    plt.ylim(0, L)
+    plt.gca().set_aspect('equal')
+    plt.grid(True)
+    #plt.show()
+    plt.savefig(figname, dpi=300, bbox_inches="tight")
 
 
 
 # Plot Voronoi diagram with bounded cells (clipped to [0,1]^2 box)
-def plot_bounded_voronoi(vor, points, users, box=[0, 1, 0, 1]):
+def plot_bounded_voronoi(vor, points, users, figname, box=[0, 1, 0, 1]):
     from shapely.geometry import Polygon, LineString
     from shapely.ops import clip_by_rect
     import matplotlib.patches as patches
@@ -478,7 +483,7 @@ def plot_bounded_voronoi(vor, points, users, box=[0, 1, 0, 1]):
     ax.set_xlim(box[0], box[1])
     ax.set_ylim(box[2], box[3])
     ax.set_aspect('equal')
-    ax.set_title("Voronoi Diagram of BSs with Users", fontsize=18)
+    ax.set_title("Voronoi Diagram of BSs with Users", fontsize=20)
 
     # Draw clipped Voronoi regions
     for region_idx in vor.point_region:
@@ -506,9 +511,10 @@ def plot_bounded_voronoi(vor, points, users, box=[0, 1, 0, 1]):
     # Plot user positions
     ax.plot(users[:, 0], users[:, 1], '.', color='red', markersize=4, label='Users')
 
-    ax.legend(loc='best', fontsize=12)
+    ax.legend(loc='best', fontsize=18)
     ax.grid(True)
     plt.tight_layout()
-    plt.show()
+    plt.savefig(figname, dpi=300, bbox_inches="tight")
+    #plt.show()
 
 
