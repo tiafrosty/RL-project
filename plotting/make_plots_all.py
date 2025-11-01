@@ -152,10 +152,10 @@ def make_plots_3_vals(figname_loss_delay, figname_cost_cap,
         "Per-slot average delay", "Average delay"),
     ]:
         # Raw 
-        ax.plot(y_raw, linewidth=1.2, color = cols['q-learn'])
-        ax.plot(greedy_loss if ax is ax1 else greedy_delay,
+        ax.plot(y_raw, linewidth=1.2, alpha=0.35, color = cols['q-learn'])
+        ax.plot(greedy_loss if ax is ax1 else greedy_delay, alpha=0.35,
                 linewidth=1.2, color = cols["myopic"])
-        ax.plot(NN_loss if ax is ax1 else NN_delay,
+        ax.plot(NN_loss if ax is ax1 else NN_delay, alpha=0.35,
                 linewidth=1.2,  color = cols['NN'])
         # Smoothed (bold)
         ax.plot(y_smooth, linewidth=2.2, label="Q-learning", color = cols["q-learn"])
