@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import tqdm
-import random
+#import random
 import math
 
 from .del_tracker import DelayTracker
@@ -57,6 +57,9 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
 
 
     mean_actions =[0 for _ in range(N_agents)]
+    
+    seed=12345
+    rng = env.make_rng(seed)
 
     for n in tqdm(range(1, n_steps + 1)):
         
@@ -89,10 +92,11 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             # current state
             s = buffers[k]
             m_idx = mean_actions[k]
-            random.seed(k*n)
-            rand_action = np.random.choice(A_vals) 
+            #random.seed(k*n)
+            #actions_prev = list(rng.choice(A_vals, size=N_agents))
+            rand_action = list(rng.choice(A_vals, size=N_agents))[k] #np.random.choice(A_vals) 
             # epsilon-greedy over Q (for exploration)
-            if random.random() < epsilon:
+            if rng.random() < epsilon:
                 actions.append(rand_action)
             else:
                  # 2d was like this
@@ -107,8 +111,9 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             if n == 100:
                 aa = 1
 
-        np.random.seed(n)
-        signals = np.random.binomial(1, p_signal, N_agents)
+        #np.random.seed(n)
+        signals = rng.binomial(1, p_signal, N_agents)
+        #signals = np.random.binomial(1, p_signal, N_agents)
 
         # check which users are active
         active_users = np.array([
@@ -117,8 +122,8 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
         ])
         
         # generate strengths only for active users
-        np.random.seed(n)
-        strengths = np.random.exponential(1/np.array(actions))*active_users
+        #np.random.seed(n)
+        strengths = rng.exponential(1/np.array(actions))*active_users
         
         # which users have non-full buffer
         inds_buffers_less_than_K = [jj for jj in range(len(buffers)) if buffers[jj] < K]
@@ -157,8 +162,8 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
                 
             # randomly pick a user from the users set
             
-            random.seed(i*n)
-            user_id = random.choice(users_and_bs[i])
+            #random.seed(i*n)
+            user_id = rng.choice(users_and_bs[i]) #random.choice(users_and_bs[i])
 
             # estimate the mean-field across the neighbors set
             #mf_prev = mf_bin(q_n)        # bin for previous step (later used in Q-learning)

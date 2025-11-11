@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import math
-import random
+#import random
 
 from .del_tracker import DelayTracker
 
@@ -47,8 +47,8 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         # same expression as in your simulation loop
         interf = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[m] / m for m in A_vals) if len(neighbors[i]) else 0.0
 
-        np.random.seed(n*i)
-        scale =  np.random.exponential(1/mu)
+        #np.random.seed(n*i)
+        scale =  rng.exponential(1/mu)
         sinr = (scale * a_x) / (interf + noise)
 
         # instantaneous cost: -log2(1 + SINR) + lambda_buffer * buffer
@@ -60,6 +60,9 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     ###### MAIN LEARNING LOOP ########
     ##################################
     coverage = []
+    
+    seed=12345
+    rng = env.make_rng(seed)
     
     for n in tqdm(range(1, n_steps + 1)):
         
@@ -76,12 +79,12 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         for k in range(N_agents):
             # current state
             # epsilon-greedy over Q (for exploration)
-            random.seed(k*n)
-            rand_action = np.random.choice(A_vals) 
+            #random.seed(k*n)
+            rand_action = list(rng.choice(A_vals, size=N_agents))[k] #np.random.choice(A_vals) 
             actions.append(rand_action)
                 
-        np.random.seed(n)
-        signals = np.random.binomial(1, p_signal, N_agents)
+        #np.random.seed(n)
+        signals = rng.binomial(1, p_signal, N_agents)
 
         # check which users are active
         active_users = np.array([
@@ -90,8 +93,8 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         ])
         
         # generate strengths only for active users
-        np.random.seed(n)
-        strengths = np.random.exponential(1/np.array(actions))*active_users
+        #np.random.seed(n)
+        strengths = rng.exponential(1/np.array(actions))*active_users
         
         inds_buffers_less_than_K = [jj for jj in range(len(buffers)) if buffers[jj] < K]
         
@@ -118,8 +121,8 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
                 continue
                 
             # randomly pick a user from the users set
-            random.seed(i*n)
-            user_id = random.choice(users_and_bs[i])
+            #random.seed(i*n)
+            user_id = rng.choice(users_and_bs[i])
             # estimate the mean-field across the neighbors set
             q_n, pi = env.estimate_mean_fields(buffers, actions, neighbors, i,  K_buffer = K)
             user_pos = env.user_locations[user_id]
