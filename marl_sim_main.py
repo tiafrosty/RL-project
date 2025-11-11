@@ -20,6 +20,11 @@ Q_greedy_try2 = Myopic.Greedy
 sim_test = Myopic_test.Greedy
 
 
+# DQN
+NN_cost, NN_cap, NN_hist_all, NN_delay, NN_loss, NN_coverage, _, _, nn_train_loss, cost_nn_all_agents, cap_nn_all_agents, act_all_agents, buff_all_agents  = DQN_sim(env, 1, 0.6, 100, 212, 'Q-diff-0.png', 40000)
+
+
+
 Q_cost, Q_cap, q_hist_all, Q_delay, Q_loss, Q_coverage, Q_cov_mean, Q_cap_mean, q_actions, q_buffs = Q_sim(env, 0.2, 50, 212, 'Q-diff-0.png', 10000)
        
 
@@ -44,9 +49,9 @@ def compute_for_all_p(K_buff, n, count_after):
     for cur_p in all_p:
         
         # Q-learning
-        Q_cost, Q_cap, q_hist_all, Q_delay, Q_loss, Q_coverage, Q_cov_mean, Q_cap_mean, q_actions, q_buffs = Q_sim(env, cur_p, K_buff, 212, 'Q-diff-0.png', 10000)
+        Q_cost, Q_cap, q_hist_all, Q_delay, Q_loss, Q_coverage, Q_cov_mean, Q_cap_mean, q_actions, q_buffs = Q_sim(env, count_after, cur_p, K_buff, 212, 'Q-diff-0.png', 10000)
         # greedy
-        greedy_cost, greedy, greedy_delay, greedy_loss, greedy_coverage, greedy_cov_mean, greedy_cap_mean, greedy_actions, greedy_buffs = Q_greedy_try2(env, cur_p, K_buff, 212, 'greedy-diff-0.png', 5000)
+        greedy_cost, greedy, greedy_delay, greedy_loss, greedy_coverage, greedy_cov_mean, greedy_cap_mean, greedy_actions, greedy_buffs = Q_greedy_try2(env, count_after, cur_p, K_buff, 212, 'greedy-diff-0.png', 5000)
         # DQN
         NN_cost, NN_cap, NN_hist_all, NN_delay, NN_loss, NN_coverage, NN_cov_mean, NN_cap_mean, nn_train_loss, cost_nn_all_agents, cap_nn_all_agents, act_all_agents, buff_all_agents  = DQN_sim(env, count_after, cur_p, K_buff, 212, 'Q-diff-0.png', n)
 

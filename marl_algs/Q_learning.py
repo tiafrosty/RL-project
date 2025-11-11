@@ -233,10 +233,12 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
         avg_delay_this_slot = tracker.end_slot()
             
         # step summaries
-        shannon_cap_cum_all.append(shannon_cap_cum_current_step/len(active_users)) # I replaced len(active_users) by N_agents 
-        cumulative_cost_q_all.append(cumulative_cost_q_current_step/len(active_users))
+        den = max(1, int(active_users.sum()))
         
-        coverage.append(sum_transmitted/len(active_users))
+        shannon_cap_cum_all.append(shannon_cap_cum_current_step/den) # I replaced len(active_users) by N_agents 
+        cumulative_cost_q_all.append(cumulative_cost_q_current_step/den)
+        
+        coverage.append(sum_transmitted/den)
         
         
         if n % env.n_steps_plot == 0:
