@@ -331,7 +331,7 @@ def DQN_sim(env, count_after, p_signal, K, tracked_agent, name, n_steps,
             global_step += 1
 
         # Metrics
-        den = max(1, int(active_users.sum()))
+        den = len(active_users) #max(1, int(active_users.sum()))
         shannon_cap_cum_all.append(shannon_cap_cum_current_step / den)
         cumulative_cost_q_all.append(cumulative_cost_q_current_step / den)
         coverage.append(sum_transmitted / den)
