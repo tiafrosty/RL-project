@@ -164,9 +164,11 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
                 best_cost =0
                 best_cap = math.log2(1 + SINR) # 0 anyway but keep for sanity check  
                 best_success = 0
+                best_mu = stale_actions[i]
             else:              
                 best_cost = float('inf')
                 best_cap = math.log2(1 + SINR)
+                best_mu = stale_actions[i]
                 for mu in A_vals:
                     c_mu, cur_cap, sinr_mu = instant_cost_for_action(i, mu, buffers[i], q_n, pi, user_pos)
                     if c_mu <= best_cost:
