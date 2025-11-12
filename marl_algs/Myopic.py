@@ -7,6 +7,10 @@ from .del_tracker import DelayTracker
 
 def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     
+    
+    seed=12345
+    rng = env.make_rng(seed)
+    
     losses = []
     
     N_agents = env.N_agents
@@ -49,7 +53,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         interf = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[m] / m for m in A_vals) if len(neighbors[i]) else 0.0
 
         np.random.seed(n*i)
-        scale = np.exponential(1/mu)
+        scale = np.random.exponential(1/mu)
         sinr = (scale * a_x) / (interf + noise)
 
         # instantaneous cost: -log2(1 + SINR) + lambda_buffer * buffer
@@ -62,8 +66,6 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     ##################################
     coverage = []
     
-    seed=12345
-    rng = env.make_rng(seed)
     
     for n in tqdm(range(1, n_steps + 1)):
         
