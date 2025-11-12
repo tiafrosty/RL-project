@@ -37,6 +37,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
     
     action_every_agent =  [[] for _ in range(N_agents)]
     
+    actions = list(rng.choice(A_vals, size=N_agents))
     
     def instant_cost_for_action(i, mu, s_i, q_n_i, pi_i, user_pos):
         # path losses towards the chosen user and average neighbor attenuation
@@ -73,32 +74,38 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         
         shannon_cap_cum_current_step = 0
         cumulative_cost_q_current_step = 0
+        
+        stale_actions = actions.copy()
+        stale_buffers = buffers.copy()
 
-        actions = []
-
-        for k in range(N_agents):
-            # current state
-            # epsilon-greedy over Q (for exploration)
-            #random.seed(k*n)
-            rand_action = list(rng.choice(A_vals, size=N_agents))[k] #np.random.choice(A_vals) 
-            actions.append(rand_action)
-                
-        #np.random.seed(n)
         signals = rng.binomial(1, p_signal, N_agents)
-
-        # check which users are active
+        #actions = []
+        
         active_users = np.array([
             (signal == 1) or (buf > 0)
             for signal, buf in zip(signals, buffers)
         ])
         
-        # generate strengths only for active users
-        #np.random.seed(n)
-        strengths = rng.exponential(1/np.array(actions))*active_users
-        
         inds_buffers_less_than_K = [jj for jj in range(len(buffers)) if buffers[jj] < K]
         
         losses_current_slot = 0
+
+        #for k in range(N_agents):
+        #    # current state
+        #    # epsilon-greedy over Q (for exploration)
+        #    #random.seed(k*n)
+        #    rand_action = list(rng.choice(A_vals, size=N_agents))[k] #np.random.choice(A_vals) 
+        #    actions.append(rand_action)
+                
+        #np.random.seed(n)
+
+        # check which users are active
+
+        
+        # generate strengths only for active users
+        #np.random.seed(n)
+        #strengths = rng.exponential(1/np.array(actions))*active_users
+        
         # update buffers directly, send every obtained signal to the buffer
         for j in range(N_agents):
             # if user j obtained a new signal and
@@ -112,10 +119,13 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
                 else:
                     losses_current_slot += 1
 
-        losses.append(losses_current_slot / signals.sum())
+        losses.append(losses_current_slot / signals.sum() if signals.sum() > 0 else 0.0)
+        #losses.append(losses_current_slot / signals.sum())
         # iterate agents
+        
+        new_actions = stale_actions.copy()
+        
         for i in range(N_agents):
-            
             # if we have a BS with no users assigned, skip
             if len(users_and_bs[i]) == 0:
                 continue
@@ -124,7 +134,11 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             #random.seed(i*n)
             user_id = rng.choice(users_and_bs[i])
             # estimate the mean-field across the neighbors set
-            q_n, pi = env.estimate_mean_fields(buffers, actions, neighbors, i,  K_buffer = K)
+            #q_n, pi = env.estimate_mean_fields(buffers, actions, neighbors, i,  K_buffer = K)
+            q_n, pi = env.estimate_mean_fields(stale_buffers, stale_actions, neighbors, i, K_buffer=K)
+            
+            strengths_i = rng.exponential(scale=1.0 / stale_actions[i]) * active_users[i]
+
             user_pos = env.user_locations[user_id]
             a_x = env.attenuation(positions[i], user_pos)
             a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
@@ -133,16 +147,16 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
             #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
             
-            SINR = strengths[i] * a_x / (interference + noise)
+            SINR = strengths_i * a_x / (interference + noise)
             success = 1 if SINR > T else 0
             
-            if success:
-                tracker.record_service(i, n)
+            #if success:
+            #    tracker.record_service(i, n)
             
             # buffers were already incremented by arrivals; now remove served packet if success
-            buffers[i] = min(K, buffers[i] - success)
+            #buffers[i] = min(K, buffers[i] - success)
             
-            buffer_every_agent[i].append(buffers[i])
+            #buffer_every_agent[i].append(buffers[i])
             
             if active_users[i] == 0:
                 best_cost =0
@@ -159,17 +173,24 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
                         best_cap = cur_cap
                         best_success = 1 if sinr_mu > T else 0
                 
-                actions[i] = best_mu
-            sum_transmitted += best_success
-            
-            cost = best_cost #- np.log2(1 + SINR) + lambda_buffer * buffers[i] #+ #lambda_losses*losses_q[i]
-            cumulative_cost_q_current_step += cost
+                #actions[i] = best_mu
+            new_actions[i] = best_mu
+            sum_transmitted += best_success          
+            #cost = best_cost #- np.log2(1 + SINR) + lambda_buffer * buffers[i] #+ #lambda_losses*losses_q[i]
+            cumulative_cost_q_current_step += best_cost
             
             action_every_agent[i].append(actions[i])
-
+            buffer_every_agent[i].append(buffers[i])
             shannon_cap_cum_current_step += best_cap #np.log2(1 + SINR)
+            
+            if best_success:
+                tracker.record_service(i, n)
+
+            # Remove served packet if success
+            buffers[i] = min(K, buffers[i] - best_success)
         
         
+        actions = new_actions 
         avg_delay_this_slot = tracker.end_slot()
         
         # step summaries
