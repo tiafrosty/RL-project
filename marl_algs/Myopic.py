@@ -130,7 +130,6 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         
         new_actions = stale_actions.copy()
         
-        strengths = rng.exponential(scale=1.0 / stale_actions) * active_users
         for i in range(N_agents):
             # if we have a BS with no users assigned, skip
             if len(users_and_bs[i]) == 0:
@@ -143,7 +142,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             #q_n, pi = env.estimate_mean_fields(buffers, actions, neighbors, i,  K_buffer = K)
             q_n, pi = env.estimate_mean_fields(stale_buffers, stale_actions, neighbors, i, K_buffer=K)
             
-            #strengths_i = rng.exponential(scale=1.0 / stale_actions[i]) * active_users[i]
+            strengths_i = rng.exponential(scale=1.0 / stale_actions[i]) * active_users[i]
 
             user_pos = env.user_locations[user_id]
             a_x = env.attenuation(positions[i], user_pos)
@@ -155,7 +154,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
             #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
             
-            SINR = strengths[i] * a_x / (interference + noise)
+            SINR = strengths_i * a_x / (interference + noise)
             success = 1 if SINR > T else 0
             
             buffers[i] = min(K, buffers[i] - success)
