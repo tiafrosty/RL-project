@@ -152,6 +152,9 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             SINR = strengths_i * a_x / (interference + noise)
             success = 1 if SINR > T else 0
             
+            buffers[i] = min(K, buffers[i] - success)
+        
+            
             #if success:
             #    tracker.record_service(i, n)
             
@@ -179,20 +182,20 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
                 
                 #actions[i] = best_mu
             new_actions[i] = best_mu
-            sum_transmitted += best_success          
+            sum_transmitted += success 
+                     
             #cost = best_cost #- np.log2(1 + SINR) + lambda_buffer * buffers[i] #+ #lambda_losses*losses_q[i]
-            cumulative_cost_q_current_step += best_cost
+            cumulative_cost_q_current_step +=  env.compute_cost(SINR, buffers[i]) 
             
             action_every_agent[i].append(actions[i])
             buffer_every_agent[i].append(buffers[i])
-            shannon_cap_cum_current_step += best_cap #np.log2(1 + SINR)
+            shannon_cap_cum_current_step += math.log2(1 + SINR) #np.log2(1 + SINR)
             
-            if best_success:
+            if success:
                 tracker.record_service(i, n)
 
             # Remove served packet if success
-            buffers[i] = min(K, buffers[i] - best_success)
-        
+
         
         actions = new_actions 
         avg_delay_this_slot = tracker.end_slot()
