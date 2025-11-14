@@ -40,8 +40,8 @@ def plot_all_p(figname_cov_cap, figname_loss_buff,
         (ax1, Q_loss,  greedy_loss,  NN_loss, "Loss probability",        "Loss rate"),
         (ax2, Q_buff,  greedy_buff,  NN_buff, "Average buffer length",   "EB(p)"),
     ]:
-        ax.plot(p, y_raw,    linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols['q-learn'], label="Q-learning")
         ax.plot(p, base_raw, linewidth=2.5, alpha=0.8, linestyle='-', marker='o', color=cols["myopic"],   label="Myopic")
+        ax.plot(p, y_raw,    linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols['q-learn'], label="Q-learning")
         ax.plot(p, nn_raw,   linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols['NN'],       label="DQN")
 
         ax.set_xlim(0.05, 0.95)
@@ -80,8 +80,8 @@ def plot_all_p(figname_cov_cap, figname_loss_buff,
         (ax1, Q_cap,  greedy_cap,  NN_cap, "Average Shannon capacity", "C(p)"),
         (ax2, Q_cov,  greedy_cov,  NN_cov, "Coverage probability",     "P_cov(p)"),
     ]:
-        ax.plot(p, y_raw,    linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols["q-learn"], label="Q-learning")
         ax.plot(p, base_raw, linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols["myopic"],   label="Myopic")
+        ax.plot(p, y_raw,    linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols["q-learn"], label="Q-learning")
         ax.plot(p, nn_raw,   linewidth=2.5, alpha = 0.8, linestyle='-', marker='o', color=cols["NN"],       label="DQN")
 
         ax.set_xlim(0.05, 0.95)
@@ -152,15 +152,15 @@ def make_plots_3_vals(figname_loss_delay, figname_cost_cap,
         "Per-slot average delay", "Average delay"),
     ]:
         # Raw 
-        ax.plot(y_raw, linewidth=1.2, alpha=0.35, color = cols['q-learn'])
         ax.plot(greedy_loss if ax is ax1 else greedy_delay, alpha=0.35,
                 linewidth=1.2, color = cols["myopic"])
+        ax.plot(y_raw, linewidth=1.2, alpha=0.35, color = cols['q-learn'])
         ax.plot(NN_loss if ax is ax1 else NN_delay, alpha=0.35,
                 linewidth=1.2,  color = cols['NN'])
         # Smoothed (bold)
+        ax.plot(base_sm, linewidth=2.2, label="Myopic", color = cols["myopic"])
         ax.plot(y_smooth, linewidth=2.2, label="Q-learning", color = cols["q-learn"])
         base_sm = smooth(greedy_loss, 21) if ax is ax1 else smooth(greedy_delay, 21)
-        ax.plot(base_sm, linewidth=2.2, label="Myopic", color = cols["myopic"])
         # DQN
         base_nn_sm = smooth(NN_loss, 21) if ax is ax1 else smooth(NN_delay, 21)
         ax.plot(base_nn_sm, linewidth=2.2, label="DQN", color = cols["NN"])
@@ -199,17 +199,17 @@ def make_plots_3_vals(figname_loss_delay, figname_cost_cap,
         "Per-slot Shannon capacity", "EC(p)"),
     ]:
         # Raw (faint) – no markers
-        ax.plot(y_raw, linewidth=1.2, alpha=0.35, color = cols["q-learn"])
         ax.plot(greedy_cost if ax is ax1 else greedy,
                 linewidth=1.2, alpha=0.35, color = cols["myopic"])
+        ax.plot(y_raw, linewidth=1.2, alpha=0.35, color = cols["q-learn"])
         # DQN raw
         ax.plot(NN_cost if ax is ax1 else NN_cap,
                 linewidth=1.2, alpha=0.35, color = cols["NN"])
 
         # Smoothed (bold)
+        ax.plot(base_sm, linewidth=2.2, label="Myopic", color = cols["myopic"])
         ax.plot(y_smooth, linewidth=2.2, label="Q-learning", color = cols["q-learn"])
         base_sm = smooth(greedy_cost, 21) if ax is ax1 else smooth(greedy, 21)
-        ax.plot(base_sm, linewidth=2.2, label="Myopic", color = cols["myopic"])
         # DQN smoothed
         base_nn_sm = smooth(NN_cost, 21) if ax is ax1 else smooth(NN_cap, 21)
         ax.plot(base_nn_sm, linewidth=2.2, label="DQN", color = cols["NN"])
