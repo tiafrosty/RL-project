@@ -172,9 +172,11 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             a_x = env.attenuation(positions[i], user_pos)
             a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
             
-            interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
+            
+            all_a = [env.attenuation(positions[cur_pos], user_pos) for cur_pos in neighbors[i]]
+            #interference = np.sum(strengths[neighbors[i]]*all_a) #len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
             #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
-            #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
+            interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
             
             SINR = strengths[i] * a_x / (interference + noise)
             success = 1 if SINR > T else 0

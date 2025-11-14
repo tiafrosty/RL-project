@@ -286,6 +286,9 @@ def DQN_sim(env, count_after, p_signal, K, tracked_agent, name, n_steps,
             if len(neighbors[i]):
                 a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i]) / len(neighbors[i])
                 # with S ~ exp(mu):
+                all_a = [env.attenuation(positions[cur_pos], user_pos) for cur_pos in neighbors[i]]
+                #interference = np.sum(strengths[neighbors[i]]*all_a)
+                # was like this
                 interference = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[mu] / mu for mu in A_vals)
                 # with S = min (Y ~ exp(mu), S_max):
                 #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu

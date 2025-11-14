@@ -50,11 +50,14 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
 
         # interference term built from neighbors' policy distribution (from prev actions)
         # same expression as in your simulation loop
-        interf = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[m] / m for m in A_vals) if len(neighbors[i]) else 0.0
-
+        
+        all_a = [env.attenuation(positions[cur_pos], user_pos) for cur_pos in neighbors[i]]
+        #interference = np.sum(strengths[neighbors[i]]*all_a)
+        interference = len(neighbors[i]) * a_bar * q_n_i * sum(pi_i[m] / m for m in A_vals) if len(neighbors[i]) else 0.0
+        
         np.random.seed(n*i)
         scale = np.random.exponential(1/mu)
-        sinr = (scale * a_x) / (interf + noise)
+        sinr = (scale * a_x) / (interference + noise)
 
         # instantaneous cost: -log2(1 + SINR) + lambda_buffer * buffer
         # remove buffer FOR NOW
@@ -127,6 +130,7 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
         
         new_actions = stale_actions.copy()
         
+        strengths = rng.exponential(scale=1.0 / stale_actions) * active_users
         for i in range(N_agents):
             # if we have a BS with no users assigned, skip
             if len(users_and_bs[i]) == 0:
@@ -139,17 +143,19 @@ def Greedy(env, p_signal, K, tracked_agent, name, n_steps):
             #q_n, pi = env.estimate_mean_fields(buffers, actions, neighbors, i,  K_buffer = K)
             q_n, pi = env.estimate_mean_fields(stale_buffers, stale_actions, neighbors, i, K_buffer=K)
             
-            strengths_i = rng.exponential(scale=1.0 / stale_actions[i]) * active_users[i]
+            #strengths_i = rng.exponential(scale=1.0 / stale_actions[i]) * active_users[i]
 
             user_pos = env.user_locations[user_id]
             a_x = env.attenuation(positions[i], user_pos)
             a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
             
+            all_a = [env.attenuation(positions[cur_pos], user_pos) for cur_pos in neighbors[i]]
+            #interference = np.sum(strengths[neighbors[i]]*all_a)
             interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
             #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
             #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
             
-            SINR = strengths_i * a_x / (interference + noise)
+            SINR = strengths[i] * a_x / (interference + noise)
             success = 1 if SINR > T else 0
             
             buffers[i] = min(K, buffers[i] - success)
@@ -380,7 +386,10 @@ def Myopic_sim_new(env, p_signal, K, tracked_agent, name, n_steps):
             a_x = env.attenuation(positions[i], user_pos)
             a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
             
-            interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
+            
+            all_a = [env.attenuation(positions[cur_pos], user_pos) for cur_pos in neighbors[i]]
+            interference = np.sum(strengths[neighbors[i]]*all_a)
+            #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
             #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
             #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
             
@@ -440,6 +449,8 @@ def Myopic_sim_new(env, p_signal, K, tracked_agent, name, n_steps):
         # end of slot: compute delay per slot
         avg_delay_this_slot = tracker.end_slot()
             
+        if n == 400:
+            aa = 1
         # step summaries
         den = max(1, int(active_users.sum()))
         shannon_cap_cum_all.append(shannon_cap_cum_current_step/den) # I replaced len(active_users) by N_agents 
