@@ -170,11 +170,14 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             q_n, pi = env.estimate_mean_fields(buffers_freeze, actions, neighbors, i, K_buffer = K)
             user_pos = env.user_locations[user_id]
             a_x = env.attenuation(positions[i], user_pos)
-            a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
-            
-            
+            #a_bar = sum(env.attenuation(positions[j], user_pos) for j in neighbors[i])/len(neighbors[i])
+            mu_bar = np.mean(actions)  #sum(pi[mu]/mu for mu in A_vals)
             all_a = [env.attenuation(positions[cur_pos], user_pos) for cur_pos in neighbors[i]]
-            interference = len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
+            interference = np.sum(strengths[neighbors[i]]*all_a*active_users[neighbors[i]])
+            #interference = env.compute_interference(q_n, mu_bar, positions, user_pos, neighbors[i])
+            
+            #all_a = [env.attenuation(positions[cur_pos], user_pos) for cur_pos in neighbors[i]]
+            #interference = len(neighbors[i]) * a_bar * q_n * sum(pi[mu]/mu for mu in A_vals)
             #E_S = lambda mu: (1 - math.exp(-S_max*mu))/mu
             #interference =  len(neighbors[i]) * a_bar * q_n * sum(pi[mu]*E_S(mu) for mu in A_vals)
             
@@ -201,8 +204,9 @@ def Q_sim(env, p_signal, K, tracked_agent, name, n_steps):
             # i compute the mean actions of all agents like this
             #a_bar_discr = A_vals[np.argmin(abs(np.mean(actions) - np.array(A_vals)))]
             # no wait... probably like this:
-            pi_bar = sum(pi[mu]/mu for mu in A_vals)
-            a_bar_discr = int(A_vals[np.argmin(abs(pi_bar - np.array(A_vals)))])
+            #pi_bar = sum(pi[mu]/mu for mu in A_vals)
+            #mu_bar = np.mean(actions)
+            a_bar_discr = int(A_vals[np.argmin(abs(mu_bar - np.array(A_vals)))])
             
             mean_actions[i] = a_bar_discr
             
