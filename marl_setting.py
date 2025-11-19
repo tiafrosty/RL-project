@@ -35,7 +35,7 @@ class Env:
         # input rate (let's try with p = q = 1 for now)
         #p_signal = 0.7
         # delay penalty 
-        self.lambda_buffer = 0.05
+        self.lambda_buffer = 0.3
         #lambda_losses = 10*lambda_buffer*K/p_signal
         # the default signal strength 
         self.mu_base = 1.0
