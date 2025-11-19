@@ -21,7 +21,7 @@ class Env:
         # users int
         self.user_intensity = 5000
         # action space
-        self.A_vals = [0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0] #, 3.5, 4, 4.5, 5, 5.5, 6, 6.5]
+        self.A_vals = [0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0 , 3.5, 4, 4.5, 5, 5.5, 6, 6.5]
         # volume of action space
         self.M = len(self.A_vals)
         # 
@@ -35,7 +35,7 @@ class Env:
         # input rate (let's try with p = q = 1 for now)
         #p_signal = 0.7
         # delay penalty 
-        self.lambda_buffer = 0.3
+        self.lambda_buffer = 0.05
         #lambda_losses = 10*lambda_buffer*K/p_signal
         # the default signal strength 
         self.mu_base = 1.0
@@ -81,6 +81,10 @@ class Env:
     def compute_cost(self, SINR, buff_i):
         
         return  - math.log2(1 + SINR) + self.lambda_buffer * buff_i
+    
+    def compute_interference(self, q_n_i, mu_bar, positions, user_pos, neighbors_i):
+        a_all = sum(self.attenuation(positions[j], user_pos) for j in neighbors_i)
+        return   q_n_i * (1/mu_bar)*a_all    
 
 
     # Use shortest distance to associate users and BSs
